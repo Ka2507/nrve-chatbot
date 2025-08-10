@@ -1,18 +1,18 @@
 # NRVE Mental Health Chatbot
 
-A beautiful, AI-powered mental health companion built with React, TypeScript, and Gemini AI.
+An AI-powered mental health companion built with React, TypeScript, and Gemini AI.
 
-## 🌟 Features
+##  Features
 
-- **🤖 AI-Powered Conversations**: Powered by Google's Gemini AI for empathetic, supportive responses
-- **📝 Personal Journaling**: Write and save your thoughts with automatic title generation
-- **🌤️ Mood Assessment**: Weather-based mood tracking on every visit
-- **🎨 Beautiful UI**: Modern design with purple/cyan color scheme and smooth animations
-- **📱 Responsive Design**: Works perfectly on desktop and mobile devices
-- **🔍 Smart Context**: AI can reference your journal entries for personalized support
-- **⚡ Real-time Chat**: Instant responses with typing indicators
+- **AI-Powered Conversations**: Powered by Google's Gemini AI for empathetic, supportive responses
+- **Personal Journaling**: Write and save your thoughts with automatic title generation
+- **Mood Assessment**: Weather-based mood tracking on every visit
+- **Beautiful UI**: Modern design with purple/cyan color scheme and smooth animations
+- **Responsive Design**: Works perfectly on desktop and mobile devices
+- **Smart Context**: AI can reference your journal entries for personalized support
+- **Real-time Chat**: Instant responses with typing indicators
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js (v18 or higher)
@@ -40,7 +40,7 @@ A beautiful, AI-powered mental health companion built with React, TypeScript, an
    - Frontend: http://localhost:5173
    - Backend: http://localhost:4000
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 nrve-fullstack/
@@ -58,7 +58,7 @@ nrve-fullstack/
 └── package.json           # Root workspace configuration
 ```
 
-## 🎯 How It Works
+## How It Works
 
 ### Mood Assessment
 Every time you visit NRVE, you'll be asked "How are you feeling today?" with four weather options:
@@ -79,7 +79,7 @@ Every time you visit NRVE, you'll be asked "How are you feeling today?" with fou
 - **Search & Reference**: AI can find and reference relevant journal entries
 - **Persistent Storage**: All entries saved to server
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### Frontend
 - **React 18** - UI framework
@@ -94,7 +94,7 @@ Every time you visit NRVE, you'll be asked "How are you feeling today?" with fou
 - **CORS** - Cross-origin resource sharing
 - **JSON File Storage** - Simple data persistence
 
-## 🎨 Design System
+## Design System
 
 ### Color Palette
 - **Primary Purple**: #884bff
@@ -110,7 +110,7 @@ Every time you visit NRVE, you'll be asked "How are you feeling today?" with fou
 - **Modern UI**: Clean, accessible design
 - **Dark Mode Ready**: Infrastructure in place for future dark theme
 
-## 🔧 API Endpoints
+## API Endpoints
 
 ### Chat
 - `POST /api/chat` - Send message to AI
@@ -122,7 +122,7 @@ Every time you visit NRVE, you'll be asked "How are you feeling today?" with fou
 - `DELETE /api/journal/:id` - Delete journal entry
 - `GET /api/journal/search?q=term` - Search journal entries
 
-## 🚀 Deployment
+## Deployment
 
 ### Frontend (Vercel/Netlify)
 ```bash
@@ -134,7 +134,7 @@ npm run build -w client
 npm start -w server
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -145,19 +145,4 @@ npm start -w server
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Google Gemini AI** for providing the AI capabilities
-- **React Team** for the amazing framework
-- **Vite Team** for the fast build tool
-- **Tailwind CSS** for the utility-first CSS framework
-
-## 📞 Support
-
-If you have any questions or need support, please open an issue on GitHub.
-
----
-
-**NRVE** - Your mental health companion, always here to listen. 💜
 
