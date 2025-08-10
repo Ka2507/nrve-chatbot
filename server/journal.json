@@ -1,0 +1,18 @@
+{
+  "entries": [
+    {
+      "id": "6641cad5-3d08-416f-8b13-34e5cb4ef3ce",
+      "text": "i got a 99 on my test",
+      "title": "i got a 99 on my test",
+      "createdAt": "2025-08-10T05:16:25.825Z",
+      "updatedAt": "2025-08-10T05:16:25.825Z"
+    },
+    {
+      "id": "2fdae061-431f-4098-9c36-3772181edd0b",
+      "text": "i got a new car today",
+      "title": "i got a new car today",
+      "createdAt": "2025-08-10T05:15:19.212Z",
+      "updatedAt": "2025-08-10T05:15:19.212Z"
+    }
+  ]
+}
