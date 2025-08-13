@@ -186,6 +186,9 @@ const JournalListScreen: React.FC<{
   onDelete: (id: string) => void;
   onBack: () => void;
 }> = ({ entries, draft, setDraft, onSave, onSelect, onDelete, onBack }) => {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+
   const handleDelete = (id: string) => {
     Alert.alert(
       "Delete Entry",
@@ -195,6 +198,15 @@ const JournalListScreen: React.FC<{
         { text: "Delete", style: "destructive", onPress: () => onDelete(id) }
       ]
     );
+  };
+
+  const handleSave = () => {
+    if (!title.trim() || !body.trim()) return;
+    const fullText = `${title}\n\n${body}`;
+    setDraft(fullText);
+    onSave();
+    setTitle("");
+    setBody("");
   };
 
   return (
@@ -208,22 +220,35 @@ const JournalListScreen: React.FC<{
       </View>
       
       <View style={styles.draftContainer}>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          placeholder="Type your thoughts…"
-          style={styles.draftInput}
-          multiline
-          maxLength={2000}
-        />
+        <View style={styles.titleContainer}>
+          <Text style={styles.titleLabel}>Title</Text>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Enter a title for your entry..."
+            style={styles.titleInput}
+            maxLength={100}
+          />
+        </View>
+        <View style={styles.bodyContainer}>
+          <Text style={styles.bodyLabel}>Body</Text>
+          <TextInput
+            value={body}
+            onChangeText={setBody}
+            placeholder="Write your thoughts here..."
+            style={styles.bodyInput}
+            multiline
+            maxLength={2000}
+          />
+        </View>
         <View style={styles.draftFooter}>
-          <Text style={styles.draftHint}>Title is the first line.</Text>
+          <Text style={styles.draftHint}>Both title and body are required</Text>
           <TouchableOpacity 
-            onPress={onSave} 
-            disabled={!draft.trim()} 
+            onPress={handleSave} 
+            disabled={!title.trim() || !body.trim()} 
             style={[
               styles.saveButton,
-              !draft.trim() && styles.saveButtonDisabled
+              (!title.trim() || !body.trim()) && styles.saveButtonDisabled
             ]}
           >
             <Text style={styles.saveButtonText}>Save</Text>
@@ -801,6 +826,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#090b06',
+  },
+  titleContainer: {
+    marginBottom: 12,
+  },
+  titleLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(9, 11, 6, 0.7)',
+    marginBottom: 4,
+  },
+  titleInput: {
+    fontSize: 16,
+    color: '#090b06',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(136, 75, 255, 0.2)',
+    paddingBottom: 8,
+  },
+  bodyContainer: {
+    marginBottom: 12,
+  },
+  bodyLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(9, 11, 6, 0.7)',
+    marginBottom: 4,
+  },
+  bodyInput: {
+    minHeight: 120,
+    fontSize: 16,
+    color: '#090b06',
+    textAlignVertical: 'top',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(136, 75, 255, 0.2)',
+    backgroundColor: 'white',
   },
 });
 
