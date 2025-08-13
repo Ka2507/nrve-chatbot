@@ -200,13 +200,18 @@ const JournalListScreen: React.FC<{
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim() || !body.trim()) return;
     const fullText = `${title}\n\n${body}`;
     setDraft(fullText);
-    onSave();
-    setTitle("");
-    setBody("");
+    try {
+      await onSave();
+      // Clear fields only after successful save
+      setTitle("");
+      setBody("");
+    } catch (error) {
+      Alert.alert("Error", "Failed to save journal entry. Please try again.");
+    }
   };
 
   return (
@@ -380,8 +385,11 @@ const NRVEApp: React.FC = () => {
       const created = await api<JournalEntry>("/api/journal", { method: "POST", body: JSON.stringify(payload) });
       setEntries(prev => [created, ...prev]);
       setDraft("");
+      // Clear the title and body fields after successful save
+      return created;
     } catch (error) {
       console.log('Failed to save journal entry:', error);
+      throw error;
     }
   }
 
@@ -396,13 +404,14 @@ const NRVEApp: React.FC = () => {
   async function deleteEntry(id: string) {
     try {
       await api(`/api/journal/${id}`, { method: "DELETE" });
-      setEntries(prev => prev.filter(e => e.id != id));
+      setEntries(prev => prev.filter(e => e.id !== id));
       if (selectedEntry?.id === id) {
         setSelectedEntry(null);
         setShowJournalDetail(false);
       }
     } catch (error) {
       console.log('Failed to delete journal entry:', error);
+      Alert.alert("Error", "Failed to delete journal entry. Please try again.");
     }
   }
 
