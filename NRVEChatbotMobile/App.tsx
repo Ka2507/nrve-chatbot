@@ -51,16 +51,21 @@ async function api<T = any>(path: string, opts: RequestInit = {}) {
   }
 }
 
-const Header: React.FC = () => (
+const Header: React.FC<{ onJournalPress: () => void }> = ({ onJournalPress }) => (
   <View style={styles.header}>
-    <View style={styles.logoContainer}>
-      <View style={styles.logo}>
-        <Text style={styles.logoText}>NRVE</Text>
+    <View style={styles.headerContent}>
+      <View style={styles.logoContainer}>
+        <View style={styles.logo}>
+          <Text style={styles.logoText}>NRVE</Text>
+        </View>
+        <View style={styles.logoTextContainer}>
+          <Text style={styles.logoTitle}>nrve</Text>
+          <Text style={styles.logoSubtitle}>Mental health companion</Text>
+        </View>
       </View>
-      <View style={styles.logoTextContainer}>
-        <Text style={styles.logoTitle}>nrve</Text>
-        <Text style={styles.logoSubtitle}>Mental health companion</Text>
-      </View>
+      <TouchableOpacity style={styles.journalButton} onPress={onJournalPress}>
+        <Text style={styles.journalButtonText}>📖 Journal</Text>
+      </TouchableOpacity>
     </View>
   </View>
 );
@@ -172,15 +177,15 @@ const ChatMain: React.FC<{
   );
 };
 
-const JournalScreen: React.FC<{
+const JournalListScreen: React.FC<{
   entries: JournalEntry[];
   draft: string;
   setDraft: (v: string) => void;
   onSave: () => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
-  selectedId: string | null;
-}> = ({ entries, draft, setDraft, onSave, onSelect, onDelete, selectedId }) => {
+  onBack: () => void;
+}> = ({ entries, draft, setDraft, onSave, onSelect, onDelete, onBack }) => {
   const handleDelete = (id: string) => {
     Alert.alert(
       "Delete Entry",
@@ -195,8 +200,11 @@ const JournalScreen: React.FC<{
   return (
     <View style={styles.journalScreen}>
       <View style={styles.journalHeader}>
-        <Text style={styles.journalTitle}>Journaling</Text>
-        <Text style={styles.journalSubtitle}>Write freely. Save to keep it.</Text>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.journalTitle}>Journal</Text>
+        <View style={styles.placeholder} />
       </View>
       
       <View style={styles.draftContainer}>
@@ -228,53 +236,58 @@ const JournalScreen: React.FC<{
           <Text style={styles.noEntries}>No entries yet.</Text>
         )}
         {entries.map(e => (
-          <View key={e.id} style={[
-            styles.entryCard,
-            selectedId === e.id && styles.selectedEntry
-          ]}>
-            <TouchableOpacity 
-              onPress={() => onSelect(e.id)} 
-              style={styles.entryContent}
-            >
+          <TouchableOpacity 
+            key={e.id} 
+            style={styles.entryCard}
+            onPress={() => onSelect(e.id)}
+          >
+            <View style={styles.entryContent}>
               <Text style={styles.entryTitle}>{e.title}</Text>
               <Text style={styles.entryDate}>
                 {formatStamp(e.updatedAt || e.createdAt)}
               </Text>
-            </TouchableOpacity>
-            <Text style={styles.entryPreview} numberOfLines={3}>
-              {e.text}
-            </Text>
-            <View style={styles.entryActions}>
-              <TouchableOpacity 
-                onPress={() => handleDelete(e.id)}
-                style={styles.deleteButton}
-              >
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
             </View>
-          </View>
+            <TouchableOpacity 
+              onPress={() => handleDelete(e.id)}
+              style={styles.deleteButton}
+            >
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
   );
 };
 
-const TabBar: React.FC<{ activeTab: string; onTabPress: (tab: string) => void }> = ({ activeTab, onTabPress }) => (
-  <View style={styles.tabBar}>
-    <TouchableOpacity 
-      style={styles.tabButton} 
-      onPress={() => onTabPress('chat')}
-    >
-      <Text style={[styles.tabLabel, activeTab === 'chat' && styles.activeTabLabel]}>💬 Chat</Text>
-    </TouchableOpacity>
-    <TouchableOpacity 
-      style={styles.tabButton} 
-      onPress={() => onTabPress('journal')}
-    >
-      <Text style={[styles.tabLabel, activeTab === 'journal' && styles.activeTabLabel]}>📖 Journal</Text>
-    </TouchableOpacity>
-  </View>
-);
+const JournalDetailScreen: React.FC<{
+  entry: JournalEntry | null;
+  onBack: () => void;
+}> = ({ entry, onBack }) => {
+  if (!entry) return null;
+
+  return (
+    <View style={styles.journalDetailScreen}>
+      <View style={styles.journalHeader}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.journalTitle}>Journal Entry</Text>
+        <View style={styles.placeholder} />
+      </View>
+      
+      <ScrollView style={styles.detailContainer}>
+        <View style={styles.detailCard}>
+          <Text style={styles.detailTitle}>{entry.title}</Text>
+          <Text style={styles.detailDate}>
+            {formatStamp(entry.updatedAt || entry.createdAt)}
+          </Text>
+          <Text style={styles.detailText}>{entry.text}</Text>
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
 
 const NRVEApp: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -283,11 +296,13 @@ const NRVEApp: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [showMoodAssessment, setShowMoodAssessment] = useState(false);
   const [assessingMood, setAssessingMood] = useState(false);
-  const [activeTab, setActiveTab] = useState('chat');
-
+  
+  // Journal state
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [draft, setDraft] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [showJournal, setShowJournal] = useState(false);
+  const [showJournalDetail, setShowJournalDetail] = useState(false);
 
   // Check if mood assessment is needed on mount
   useEffect(() => {
@@ -340,52 +355,69 @@ const NRVEApp: React.FC = () => {
       const created = await api<JournalEntry>("/api/journal", { method: "POST", body: JSON.stringify(payload) });
       setEntries(prev => [created, ...prev]);
       setDraft("");
-      setSelectedId(created.id);
     } catch (error) {
       console.log('Failed to save journal entry:', error);
     }
   }
 
   async function selectEntry(id: string) {
-    setSelectedId(id);
+    const entry = entries.find(e => e.id === id);
+    if (entry) {
+      setSelectedEntry(entry);
+      setShowJournalDetail(true);
+    }
   }
 
   async function deleteEntry(id: string) {
     try {
       await api(`/api/journal/${id}`, { method: "DELETE" });
       setEntries(prev => prev.filter(e => e.id != id));
-      if (selectedId === id) setSelectedId(null);
+      if (selectedEntry?.id === id) {
+        setSelectedEntry(null);
+        setShowJournalDetail(false);
+      }
     } catch (error) {
       console.log('Failed to delete journal entry:', error);
     }
   }
 
+  function handleJournalPress() {
+    setShowJournal(true);
+    setShowJournalDetail(false);
+    setSelectedEntry(null);
+  }
+
+  function handleBackFromJournal() {
+    setShowJournal(false);
+    setShowJournalDetail(false);
+    setSelectedEntry(null);
+  }
+
+  function handleBackFromDetail() {
+    setShowJournalDetail(false);
+    setSelectedEntry(null);
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f5ff" />
-      <Header />
+      <Header onJournalPress={handleJournalPress} />
       {showMoodAssessment ? (
         <MoodAssessment onComplete={handleMoodAssessment} />
+      ) : showJournalDetail ? (
+        <JournalDetailScreen entry={selectedEntry} onBack={handleBackFromDetail} />
+      ) : showJournal ? (
+        <JournalListScreen
+          entries={entries}
+          draft={draft}
+          setDraft={setDraft}
+          onSave={saveDraft}
+          onSelect={selectEntry}
+          onDelete={deleteEntry}
+          onBack={handleBackFromJournal}
+        />
       ) : (
-        <>
-          <View style={styles.mainContainer}>
-            {activeTab === 'chat' && (
-              <ChatMain messages={messages} onSend={handleSend} sending={sending} />
-            )}
-            {activeTab === 'journal' && (
-              <JournalScreen
-                entries={entries}
-                draft={draft}
-                setDraft={setDraft}
-                onSave={saveDraft}
-                onSelect={selectEntry}
-                onDelete={deleteEntry}
-                selectedId={selectedId}
-              />
-            )}
-          </View>
-          <TabBar activeTab={activeTab} onTabPress={setActiveTab} />
-        </>
+        <ChatMain messages={messages} onSend={handleSend} sending={sending} />
       )}
     </SafeAreaView>
   );
@@ -402,6 +434,11 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(136, 75, 255, 0.15)',
     paddingVertical: 12,
     paddingHorizontal: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   logoContainer: {
     flexDirection: 'row',
@@ -433,6 +470,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(136, 75, 255, 0.8)',
     marginTop: -2,
+  },
+  journalButton: {
+    backgroundColor: '#884bff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  journalButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
   moodContainer: {
     flex: 1,
@@ -495,9 +543,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(9, 11, 6, 0.6)',
     textAlign: 'center',
-  },
-  mainContainer: {
-    flex: 1,
   },
   chatContainer: {
     flex: 1,
@@ -611,21 +656,35 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f5ff',
   },
+  journalDetailScreen: {
+    flex: 1,
+    backgroundColor: '#f8f5ff',
+  },
   journalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(136, 75, 255, 0.15)',
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
   },
+  backButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  backButtonText: {
+    color: '#884bff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
   journalTitle: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '600',
     color: '#6a3acc',
   },
-  journalSubtitle: {
-    fontSize: 12,
-    color: 'rgba(9, 11, 6, 0.6)',
-    marginTop: 2,
+  placeholder: {
+    width: 60,
   },
   draftContainer: {
     padding: 12,
@@ -679,36 +738,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   entryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderWidth: 1,
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
     backgroundColor: 'white',
     marginBottom: 8,
   },
-  selectedEntry: {
-    borderColor: '#884bff',
-  },
   entryContent: {
-    marginBottom: 8,
+    flex: 1,
   },
   entryTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
     color: '#090b06',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   entryDate: {
-    fontSize: 11,
-    color: 'rgba(9, 11, 6, 0.6)',
-  },
-  entryPreview: {
     fontSize: 12,
-    color: 'rgba(9, 11, 6, 0.7)',
-    lineHeight: 16,
-    marginBottom: 8,
-  },
-  entryActions: {
-    alignItems: 'flex-end',
+    color: 'rgba(9, 11, 6, 0.6)',
   },
   deleteButton: {
     borderWidth: 1,
@@ -722,26 +772,35 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontSize: 12,
   },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(136, 75, 255, 0.15)',
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-    paddingTop: 10,
-  },
-  tabButton: {
+  detailContainer: {
     flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
+    padding: 16,
   },
-  tabLabel: {
+  detailCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  detailTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#090b06',
+    marginBottom: 8,
+  },
+  detailDate: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(9, 11, 6, 0.6)',
+    marginBottom: 16,
   },
-  activeTabLabel: {
-    color: '#884bff',
-    fontWeight: '500',
+  detailText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#090b06',
   },
 });
 
