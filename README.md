@@ -1,148 +1,116 @@
-# NRVE Mental Health Chatbot
+# NRVE Chatbot - Pure React Native
 
-An AI-powered mental health companion built with React, TypeScript, and Gemini AI.
+This is a pure React Native version of the NRVE chatbot application, designed for easy integration into existing React Native projects.
 
-##  Features
+## Features
 
-- **AI-Powered Conversations**: Powered by Google's Gemini AI for empathetic, supportive responses
-- **Personal Journaling**: Write and save your thoughts with automatic title generation
-- **Mood Assessment**: Weather-based mood tracking on every visit
-- **Beautiful UI**: Modern design with purple/cyan color scheme and smooth animations
-- **Responsive Design**: Works perfectly on desktop and mobile devices
-- **Smart Context**: AI can reference your journal entries for personalized support
-- **Real-time Chat**: Instant responses with typing indicators
+- ✅ **Pure React Native**: No Expo dependencies, ready for integration
+- ✅ **Chat Interface**: AI-powered conversation with mood assessment
+- ✅ **Journal Functionality**: Save, view, and delete journal entries
+- ✅ **Mobile-Optimized UI**: Clean, responsive design for mobile devices
+- ✅ **API Integration**: Connects to the NRVE backend server
 
-## Quick Start
+## Prerequisites
 
-### Prerequisites
 - Node.js (v18 or higher)
-- npm or yarn
+- React Native CLI
+- iOS Simulator (for iOS development)
+- Android Studio (for Android development)
 
-### Installation
+## Installation
 
-1. **Clone the repository**
+1. **Install dependencies:**
    ```bash
-   git clone https://github.com/ka2507/nrve-chatbot.git
-   cd nrve-chatbot
+   npm install
    ```
 
-2. **Install dependencies**
+2. **Start the Metro bundler:**
    ```bash
-   npm run install:all
+   npm start
    ```
 
-3. **Start the development servers**
+3. **Run on iOS:**
    ```bash
-   npm run dev
+   npm run ios
    ```
 
-4. **Open your browser**
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:4000
+4. **Run on Android:**
+   ```bash
+   npm run android
+   ```
+
+## Server Setup
+
+Make sure the NRVE backend server is running on `http://localhost:4000`:
+
+```bash
+cd ../server
+node index.js
+```
+
+## Integration Guide
+
+This app is designed to be easily integrated into existing React Native projects:
+
+### 1. Copy Components
+Copy the `src/App.tsx` file and its components to your project.
+
+### 2. Install Dependencies
+Ensure your project has these React Native dependencies:
+- `react-native`
+- `react`
+
+### 3. API Configuration
+Update the `API_BASE_URL` constant in the App.tsx file to match your server configuration.
+
+### 4. Styling
+The app uses React Native StyleSheet for styling, which is compatible with any React Native project.
 
 ## Project Structure
 
 ```
-nrve-fullstack/
-├── client/                 # React frontend
-│   ├── src/
-│   │   ├── App.tsx        # Main application component
-│   │   ├── main.tsx       # Entry point
-│   │   └── index.css      # Global styles
-│   ├── package.json       # Frontend dependencies
-│   └── vite.config.ts     # Vite configuration
-├── server/                 # Express backend
-│   ├── index.js           # Main server file
-│   ├── package.json       # Backend dependencies
-│   └── journal.json       # Journal data storage
-└── package.json           # Root workspace configuration
+NRVEChatbotPure/
+├── src/
+│   └── App.tsx          # Main application component
+├── package.json         # Dependencies and scripts
+├── metro.config.js      # Metro bundler configuration
+├── babel.config.js      # Babel configuration
+├── tsconfig.json        # TypeScript configuration
+└── index.js             # Entry point
 ```
 
-## How It Works
+## Key Components
 
-### Mood Assessment
-Every time you visit NRVE, you'll be asked "How are you feeling today?" with four weather options:
-- ☀️ **Sunny** - Feeling bright and positive
-- ☁️ **Cloudy** - A bit uncertain or mixed
-- 🌧️ **Rainy** - Feeling down or sad
-- ⛈️ **Stormy** - Really struggling today
-
-### AI Conversations
-- **Smart Responses**: NRVE provides empathetic, supportive responses
-- **Context Awareness**: Can reference your journal entries when relevant
-- **Appropriate Disclaimers**: Only adds mental health resources when discussing serious concerns
-- **General Questions**: Answers normal questions without unnecessary medical disclaimers
-
-### Journal Integration
-- **Automatic Saving**: Click "Save" to store your thoughts
-- **Smart Titles**: First line becomes the entry title
-- **Search & Reference**: AI can find and reference relevant journal entries
-- **Persistent Storage**: All entries saved to server
-
-##  Technology Stack
-
-### Frontend
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **Tailwind CSS** - Styling
-- **Framer Motion** - Animations
-
-### Backend
-- **Express.js** - Web server
-- **Google Generative AI** - Gemini AI integration
-- **CORS** - Cross-origin resource sharing
-- **JSON File Storage** - Simple data persistence
-
-## Design System
-
-### Color Palette
-- **Primary Purple**: #884bff
-- **Cyan Accent**: #3df9ff
-- **Magenta**: #f722ff
-- **Yellow**: #fff73a
-- **White**: #ffffff
-- **Black**: #090b06
-
-### Features
-- **Responsive Layout**: Adapts to any screen size
-- **Smooth Animations**: Framer Motion powered transitions
-- **Modern UI**: Clean, accessible design
-- **Dark Mode Ready**: Infrastructure in place for future dark theme
+- **Header**: Logo and journal navigation button
+- **MoodAssessment**: Initial mood selection interface
+- **ChatMain**: Main chat interface with message history
+- **JournalSidebar**: Journal entry list and creation
+- **JournalDetailScreen**: Detailed view of journal entries
 
 ## API Endpoints
 
-### Chat
-- `POST /api/chat` - Send message to AI
-- `POST /api/mood` - Submit mood assessment
-
-### Journal
-- `GET /api/journal` - Get all journal entries
+The app connects to these backend endpoints:
+- `GET /api/journal` - Fetch journal entries
 - `POST /api/journal` - Create new journal entry
 - `DELETE /api/journal/:id` - Delete journal entry
-- `GET /api/journal/search?q=term` - Search journal entries
+- `POST /api/chat` - Send chat message
+- `POST /api/mood` - Submit mood assessment
 
-## Deployment
+## Troubleshooting
 
-### Frontend (Vercel/Netlify)
-```bash
-npm run build -w client
-```
+### Common Issues
 
-### Backend (Railway/Render)
-```bash
-npm start -w server
-```
+1. **Metro bundler issues**: Clear cache with `npx react-native start --reset-cache`
+2. **iOS build issues**: Clean build folder in Xcode
+3. **Android build issues**: Clean project with `cd android && ./gradlew clean`
 
-## Contributing
+### Development
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- Use `npm start` to start the Metro bundler
+- Use `npm run ios` or `npm run android` to run on simulators
+- Check console logs for debugging information
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is part of the NRVE chatbot application.
 
