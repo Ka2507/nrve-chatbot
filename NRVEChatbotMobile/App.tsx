@@ -12,11 +12,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { API_BASE_URL } from './config';
 
 type ChatMessage = { id: string; role: "user" | "bot"; text: string; time: string };
 type JournalEntry = { id: string; createdAt: string; updatedAt?: string; text: string; title: string };
-
-const API_BASE_URL = 'http://localhost:4000';
 
 function nowISO() { return new Date().toISOString(); }
 function formatStamp(iso: string) {
@@ -245,6 +244,14 @@ const JournalSidebar: React.FC<{
 }> = ({ entries, draft, setDraft, onSave, onSelect, onDelete, selectedId, onBack }) => {
   const handleDelete = (id: string) => {
     console.log('handleDelete called with id:', id);
+    console.log('onDelete function:', onDelete);
+    
+    // For debugging, let's try calling onDelete directly first
+    console.log('Calling onDelete directly for testing...');
+    onDelete(id);
+    
+    // Comment out the Alert for now to test if the issue is with the Alert
+    /*
     Alert.alert(
       "Delete Entry",
       "Are you sure you want to delete this journal entry?",
@@ -256,6 +263,7 @@ const JournalSidebar: React.FC<{
         }}
       ]
     );
+    */
   };
 
   return (
@@ -350,10 +358,20 @@ const NRVEApp: React.FC = () => {
 
   // Load journals on mount
   useEffect(() => {
-    api<JournalEntry[]>("/api/journal").then(setEntries).catch((error) => {
-      console.log('Failed to load journals:', error);
-    });
+    loadEntries();
   }, []);
+
+  // Function to load entries from server
+  const loadEntries = async () => {
+    try {
+      console.log('Loading entries from server...');
+      const loadedEntries = await api<JournalEntry[]>("/api/journal");
+      console.log('Loaded entries count:', loadedEntries.length);
+      setEntries(loadedEntries);
+    } catch (error) {
+      console.log('Failed to load journals:', error);
+    }
+  };
 
   async function handleMoodAssessment(mood: string) {
     setAssessingMood(true);
@@ -423,8 +441,13 @@ const NRVEApp: React.FC = () => {
   }
 
   async function deleteEntry(id: string) {
+    let currentEntries: JournalEntry[] = [];
+    
     try {
       console.log('deleteEntry called with id:', id);
+      
+      // Store the current entries for potential rollback
+      currentEntries = [...entries];
       
       // First update the UI optimistically
       setEntries(prev => {
@@ -447,13 +470,28 @@ const NRVEApp: React.FC = () => {
       const response = await api(`/api/journal/${id}`, { method: "DELETE" });
       console.log('API response:', response);
       
-      Alert.alert("Success", "Journal entry deleted successfully.");
+      // Verify the deletion was successful
+      if (response && response.ok) {
+        console.log('Entry deleted successfully from server');
+        // No need to show success alert as the UI is already updated
+      } else {
+        throw new Error('Server did not confirm deletion');
+      }
       
     } catch (error) {
       console.error('Failed to delete journal entry:', error);
       
-      // Revert the optimistic update on error
-      // We would need to reload the entries here, but for now just show error
+      // Revert the optimistic update on error by reloading from server
+      try {
+        console.log('Reloading entries from server due to delete error');
+        const reloadedEntries = await api<JournalEntry[]>("/api/journal");
+        setEntries(reloadedEntries);
+      } catch (reloadError) {
+        console.error('Failed to reload entries:', reloadError);
+        // If reload fails, revert to the previous state
+        setEntries(currentEntries);
+      }
+      
       Alert.alert("Error", "Failed to delete journal entry. Please try again.");
     }
   }
