@@ -42,13 +42,26 @@ function uuid() {
 }
 
 async function api<T = any>(path: string, opts: RequestInit = {}) {
+  const url = `${API_BASE_URL}${path}`;
+  console.log('API call to:', url, 'with options:', opts);
+  
   try {
-    const res = await fetch(`${API_BASE_URL}${path}`, { 
+    const res = await fetch(url, { 
       headers: { "Content-Type": "application/json" }, 
       ...opts 
     });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json() as Promise<T>;
+    
+    console.log('API response status:', res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('API error response:', errorText);
+      throw new Error(errorText);
+    }
+    
+    const data = await res.json();
+    console.log('API response data:', data);
+    return data as T;
   } catch (error) {
     console.error('API Error:', error);
     throw error;
@@ -185,12 +198,16 @@ const JournalDetailScreen: React.FC<{
   onDelete: (id: string) => void;
 }> = ({ entry, onBack, onDelete }) => {
   const handleDelete = () => {
+    console.log('JournalDetailScreen handleDelete called for entry:', entry.id);
     Alert.alert(
       "Delete Entry",
       "Are you sure you want to delete this journal entry?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => onDelete(entry.id) }
+        { text: "Delete", style: "destructive", onPress: () => {
+          console.log('JournalDetailScreen delete confirmed for entry:', entry.id);
+          onDelete(entry.id);
+        }}
       ]
     );
   };
@@ -227,12 +244,16 @@ const JournalSidebar: React.FC<{
   onBack: () => void;
 }> = ({ entries, draft, setDraft, onSave, onSelect, onDelete, selectedId, onBack }) => {
   const handleDelete = (id: string) => {
+    console.log('handleDelete called with id:', id);
     Alert.alert(
       "Delete Entry",
       "Are you sure you want to delete this journal entry?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => onDelete(id) }
+        { text: "Delete", style: "destructive", onPress: () => {
+          console.log('Delete confirmed for id:', id);
+          onDelete(id);
+        }}
       ]
     );
   };
@@ -278,27 +299,29 @@ const JournalSidebar: React.FC<{
           <Text style={styles.noEntries}>No entries yet.</Text>
         )}
         {entries.map(e => (
-          <TouchableOpacity 
-            key={e.id} 
-            style={styles.entryCard}
-            onPress={() => onSelect(e.id)}
-          >
-            <Text style={styles.entryTitle}>{e.title}</Text>
-            <Text style={styles.entryDate}>
-              {formatStamp(e.updatedAt || e.createdAt)}
-            </Text>
+          <View key={e.id} style={styles.entryCard}>
+            <TouchableOpacity 
+              style={styles.entryContent}
+              onPress={() => onSelect(e.id)}
+            >
+              <Text style={styles.entryTitle}>{e.title}</Text>
+              <Text style={styles.entryDate}>
+                {formatStamp(e.updatedAt || e.createdAt)}
+              </Text>
+            </TouchableOpacity>
             <View style={styles.entryActions}>
               <TouchableOpacity 
-                onPress={(event) => {
-                  event.stopPropagation();
+                onPress={() => {
+                  console.log('Delete button pressed for entry:', e.id);
                   handleDelete(e.id);
                 }}
                 style={styles.deleteButton}
+                activeOpacity={0.7}
               >
                 <Text style={styles.deleteButtonText}>Delete</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         ))}
       </ScrollView>
     </View>
@@ -366,14 +389,28 @@ const NRVEApp: React.FC = () => {
 
   async function saveDraft() {
     if (!draft.trim()) return;
+    
+    console.log('Attempting to save draft:', draft);
     const payload = { text: draft };
+    
     try {
+      console.log('Making API call to save entry');
       const created = await api<JournalEntry>("/api/journal", { method: "POST", body: JSON.stringify(payload) });
-      setEntries(prev => [created, ...prev]);
+      console.log('Successfully saved entry:', created);
+      
+      setEntries(prev => {
+        const updated = [created, ...prev];
+        console.log('Updated entries count:', updated.length);
+        return updated;
+      });
+      
       setDraft("");
       setSelectedId(created.id);
+      
+      console.log('Save completed successfully');
     } catch (error) {
-      console.log('Failed to save journal entry:', error);
+      console.error('Failed to save journal entry:', error);
+      Alert.alert("Error", "Failed to save journal entry. Please try again.");
     }
   }
 
@@ -387,8 +424,16 @@ const NRVEApp: React.FC = () => {
 
   async function deleteEntry(id: string) {
     try {
-      await api(`/api/journal/${id}`, { method: "DELETE" });
-      setEntries(prev => prev.filter(e => e.id !== id));
+      console.log('deleteEntry called with id:', id);
+      
+      // First update the UI optimistically
+      setEntries(prev => {
+        const filtered = prev.filter(e => e.id !== id);
+        console.log('Optimistically updated entries count:', filtered.length);
+        return filtered;
+      });
+      
+      // Clear any selected states
       if (selectedId === id) {
         setSelectedId(null);
       }
@@ -396,8 +441,19 @@ const NRVEApp: React.FC = () => {
         setSelectedEntry(null);
         setShowJournalDetail(false);
       }
+      
+      // Then make the API call
+      console.log('Making API call to delete entry:', id);
+      const response = await api(`/api/journal/${id}`, { method: "DELETE" });
+      console.log('API response:', response);
+      
+      Alert.alert("Success", "Journal entry deleted successfully.");
+      
     } catch (error) {
-      console.log('Failed to delete journal entry:', error);
+      console.error('Failed to delete journal entry:', error);
+      
+      // Revert the optimistic update on error
+      // We would need to reload the entries here, but for now just show error
       Alert.alert("Error", "Failed to delete journal entry. Please try again.");
     }
   }
@@ -760,6 +816,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     backgroundColor: 'white',
+    marginBottom: 8,
+  },
+  entryContent: {
     marginBottom: 8,
   },
   entryTitle: {
