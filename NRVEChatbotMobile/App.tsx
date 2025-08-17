@@ -68,7 +68,7 @@ async function api<T = any>(path: string, opts: RequestInit = {}) {
   }
 }
 
-const Header: React.FC<{ onJournalPress: () => void }> = ({ onJournalPress }) => (
+const Header: React.FC<{ onJournalPress: () => void; onPromptsPress: () => void }> = ({ onJournalPress, onPromptsPress }) => (
   <View style={styles.header}>
     <View style={styles.logoContainer}>
       <View style={styles.logo}>
@@ -79,9 +79,14 @@ const Header: React.FC<{ onJournalPress: () => void }> = ({ onJournalPress }) =>
         <Text style={styles.logoSubtitle}>Mental health companion</Text>
       </View>
     </View>
-    <TouchableOpacity style={styles.journalButton} onPress={onJournalPress}>
-      <Text style={styles.journalButtonText}>📖 Journal</Text>
-    </TouchableOpacity>
+    <View style={styles.headerButtons}>
+      <TouchableOpacity style={styles.promptsButton} onPress={onPromptsPress}>
+        <Text style={styles.promptsButtonText}>💡 Prompts</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.journalButton} onPress={onJournalPress}>
+        <Text style={styles.journalButtonText}>📖 Journal</Text>
+      </TouchableOpacity>
+    </View>
   </View>
 );
 
@@ -334,6 +339,125 @@ const JournalDetailScreen: React.FC<{
   );
 };
 
+const PromptsScreen: React.FC<{
+  onBack: () => void;
+  onSelectPrompt: (prompt: string) => void;
+}> = ({ onBack, onSelectPrompt }) => {
+  const prompts = [
+    {
+      id: 'artist',
+      title: "Who's your favorite music artist?",
+      description: "Learn about what influenced your favorite musician",
+      emoji: '🎵'
+    },
+    {
+      id: 'place',
+      title: "What's your favorite place to visit?",
+      description: "Discover famous musicians connected to that location",
+      emoji: '🌍'
+    },
+    {
+      id: 'location',
+      title: "Where are you from?",
+      description: "Find famous musicians from your hometown",
+      emoji: '🏠'
+    }
+  ];
+
+  return (
+    <View style={styles.promptsContainer}>
+      <View style={styles.promptsHeader}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.promptsTitle}>Creative Prompts</Text>
+      </View>
+      <View style={styles.promptsContent}>
+        <Text style={styles.promptsSubtitle}>Choose a prompt to explore music and culture</Text>
+        {prompts.map(prompt => (
+          <TouchableOpacity
+            key={prompt.id}
+            style={styles.promptCard}
+            onPress={() => onSelectPrompt(prompt.id)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.promptEmoji}>{prompt.emoji}</Text>
+            <View style={styles.promptContent}>
+              <Text style={styles.promptTitle}>{prompt.title}</Text>
+              <Text style={styles.promptDescription}>{prompt.description}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const PromptInputScreen: React.FC<{
+  promptType: string;
+  onBack: () => void;
+  onSubmit: (input: string) => void;
+}> = ({ promptType, onBack, onSubmit }) => {
+  const [input, setInput] = useState('');
+  
+  const getPromptTitle = () => {
+    switch (promptType) {
+      case 'artist': return "Who's your favorite music artist?";
+      case 'place': return "What's your favorite place to visit?";
+      case 'location': return "Where are you from?";
+      default: return "Enter your answer";
+    }
+  };
+
+  const getPlaceholder = () => {
+    switch (promptType) {
+      case 'artist': return "e.g., Drake, Taylor Swift, Skrillex...";
+      case 'place': return "e.g., Los Angeles, Nashville, London...";
+      case 'location': return "e.g., Toronto, California, Manchester...";
+      default: return "Enter your answer";
+    }
+  };
+
+  const handleSubmit = () => {
+    if (input.trim()) {
+      onSubmit(input.trim());
+    }
+  };
+
+  return (
+    <View style={styles.promptInputContainer}>
+      <View style={styles.promptInputHeader}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.promptInputTitle}>{getPromptTitle()}</Text>
+      </View>
+      <View style={styles.promptInputContent}>
+        <Text style={styles.promptInputSubtitle}>Tell me more about it</Text>
+        <TextInput
+          value={input}
+          onChangeText={setInput}
+          placeholder={getPlaceholder()}
+          style={styles.promptInputField}
+          multiline
+          maxLength={100}
+          onSubmitEditing={handleSubmit}
+        />
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={!input.trim()}
+          style={[
+            styles.promptSubmitButton,
+            !input.trim() && styles.promptSubmitButtonDisabled
+          ]}
+        >
+          <Text style={styles.promptSubmitButtonText}>Submit</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
 const JournalSidebar: React.FC<{
   entries: JournalEntry[];
   draft: string;
@@ -450,6 +574,11 @@ const NRVEApp: React.FC = () => {
   const [deletedEntry, setDeletedEntry] = useState<JournalEntry | null>(null);
   const [showUndo, setShowUndo] = useState(false);
   const [undoTimeout, setUndoTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Prompts functionality state
+  const [showPromptsInput, setShowPromptsInput] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState<string>('');
+  const [promptInput, setPromptInput] = useState<string>('');
 
   // Check if mood assessment is needed on mount
   useEffect(() => {
@@ -648,6 +777,44 @@ const NRVEApp: React.FC = () => {
     }
   }
 
+  async function handlePromptSelect(promptType: string) {
+    setCurrentPrompt(promptType);
+    setShowPromptsInput(true);
+  }
+
+  async function handlePromptSubmit(input: string) {
+    setShowPromptsInput(false);
+    setPromptInput('');
+    
+    // Create user message
+    const userMessage = { id: uuid(), role: "user" as const, text: input, time: nowISO() };
+    setMessages(prev => [...prev, userMessage]);
+    setSending(true);
+    
+    try {
+      // Send to server with prompt type
+      const data = await api<{ reply: string }>("/api/prompt", { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          promptType: currentPrompt, 
+          input: input 
+        }) 
+      });
+      
+      const botMessage = { id: uuid(), role: "bot" as const, text: data.reply, time: nowISO() };
+      setMessages(prev => [...prev, botMessage]);
+      setActiveTab('chat');
+      
+    } catch (error) {
+      console.error('Failed to get prompt response:', error);
+      const botMessage = { id: uuid(), role: "bot" as const, text: "Sorry, I couldn't find information about that. Please try again.", time: nowISO() };
+      setMessages(prev => [...prev, botMessage]);
+      setActiveTab('chat');
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function toggleFavorite(id: string) {
     try {
       const entry = entries.find(e => e.id === id);
@@ -693,7 +860,10 @@ const NRVEApp: React.FC = () => {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor="#f8f5ff" />
-        <Header onJournalPress={() => setActiveTab('journal')} />
+        <Header 
+          onJournalPress={() => setActiveTab('journal')} 
+          onPromptsPress={() => setActiveTab('prompts')} 
+        />
         {showMoodAssessment ? (
           <MoodAssessment onComplete={handleMoodAssessment} />
         ) : (
@@ -723,6 +893,19 @@ const NRVEApp: React.FC = () => {
                 }}
                 onToggleFavorite={toggleFavorite}
                 onDelete={deleteEntry}
+              />
+            )}
+            {activeTab === 'prompts' && !showPromptsInput && (
+              <PromptsScreen
+                onBack={() => setActiveTab('chat')}
+                onSelectPrompt={handlePromptSelect}
+              />
+            )}
+            {activeTab === 'prompts' && showPromptsInput && (
+              <PromptInputScreen
+                promptType={currentPrompt}
+                onBack={() => setShowPromptsInput(false)}
+                onSubmit={handlePromptSubmit}
               />
             )}
           </View>
@@ -793,15 +976,30 @@ const styles = StyleSheet.create({
     color: 'rgba(136, 75, 255, 0.8)',
     marginTop: -2,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  promptsButton: {
+    backgroundColor: '#fbbf24',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  promptsButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   journalButton: {
     backgroundColor: '#884bff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   journalButtonText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
   moodContainer: {
@@ -1244,6 +1442,122 @@ const styles = StyleSheet.create({
   undoButtonText: {
     color: 'white',
     fontSize: 14,
+    fontWeight: '500',
+  },
+  promptsContainer: {
+    flex: 1,
+    backgroundColor: '#f8f5ff',
+  },
+  promptsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(136, 75, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  promptsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#090b06',
+    flex: 1,
+    textAlign: 'center',
+  },
+  promptsContent: {
+    flex: 1,
+    padding: 16,
+  },
+  promptsSubtitle: {
+    fontSize: 14,
+    color: 'rgba(9, 11, 6, 0.6)',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  promptCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  promptEmoji: {
+    fontSize: 24,
+    marginRight: 16,
+  },
+  promptContent: {
+    flex: 1,
+  },
+  promptTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#090b06',
+    marginBottom: 4,
+  },
+  promptDescription: {
+    fontSize: 12,
+    color: 'rgba(9, 11, 6, 0.6)',
+  },
+  promptInputContainer: {
+    flex: 1,
+    backgroundColor: '#f8f5ff',
+  },
+  promptInputHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(136, 75, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+  },
+  promptInputTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#090b06',
+    flex: 1,
+    textAlign: 'center',
+  },
+  promptInputContent: {
+    flex: 1,
+    padding: 16,
+  },
+  promptInputSubtitle: {
+    fontSize: 14,
+    color: 'rgba(9, 11, 6, 0.6)',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  promptInputField: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#090b06',
+    minHeight: 120,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(136, 75, 255, 0.2)',
+  },
+  promptSubmitButton: {
+    backgroundColor: '#884bff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  promptSubmitButtonDisabled: {
+    opacity: 0.4,
+  },
+  promptSubmitButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '500',
   },
 });

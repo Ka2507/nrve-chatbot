@@ -184,5 +184,39 @@ User message: ${message}${journalContext}`
   }
 })
 
+// --- Prompts API ---
+app.post('/api/prompt', async (req, res) => {
+  const { promptType, input } = req.body || {}
+  if (!promptType || !input || !String(input).trim()) {
+    return res.status(400).json({ error: 'promptType and input required' })
+  }
+
+  try {
+    let prompt = ''
+    
+    switch (promptType) {
+      case 'artist':
+        prompt = `Provide a brief, accurate explanation of what influenced ${input} as a music artist. Focus on their musical influences, inspirations, and what shaped their creative style. This should only cover music-related artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is up-to-date and factual.`
+        break
+      case 'place':
+        prompt = `List 3-5 famous or notable music artists who visited or are from ${input}. Include brief context about their connection to this location. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      case 'location':
+        prompt = `List 3-5 famous music artists who are from ${input}. Include brief context about their connection to this location and their musical contributions. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      default:
+        return res.status(400).json({ error: 'invalid prompt type' })
+    }
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const reply = response.text().trim() || "I couldn't find specific information about that. Could you try a different artist or location?"
+    res.json({ reply })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'prompt_error', details: String(err) })
+  }
+})
+
 const PORT = process.env.PORT || 4000
 app.listen(PORT, () => console.log('NRVE server on http://localhost:'+PORT))
