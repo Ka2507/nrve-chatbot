@@ -15,7 +15,7 @@ import {
 import { API_BASE_URL } from './config';
 
 type ChatMessage = { id: string; role: "user" | "bot"; text: string; time: string };
-type JournalEntry = { id: string; createdAt: string; updatedAt?: string; text: string; title: string };
+type JournalEntry = { id: string; createdAt: string; updatedAt?: string; text: string; title: string; preview?: string; favorite?: boolean };
 
 function nowISO() { return new Date().toISOString(); }
 function formatStamp(iso: string) {
@@ -74,7 +74,7 @@ const Header: React.FC<{ onJournalPress: () => void }> = ({ onJournalPress }) =>
         <Text style={styles.logoText}>NRVE</Text>
       </View>
       <View style={styles.logoTextContainer}>
-        <Text style={styles.logoTitle}>nrve</Text>
+        <Text style={styles.logoTitle}>Rocky</Text>
         <Text style={styles.logoSubtitle}>Mental health companion</Text>
       </View>
     </View>
@@ -194,23 +194,7 @@ const ChatMain: React.FC<{
 const JournalDetailScreen: React.FC<{
   entry: JournalEntry;
   onBack: () => void;
-  onDelete: (id: string) => void;
-}> = ({ entry, onBack, onDelete }) => {
-  const handleDelete = () => {
-    console.log('JournalDetailScreen handleDelete called for entry:', entry.id);
-    Alert.alert(
-      "Delete Entry",
-      "Are you sure you want to delete this journal entry?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => {
-          console.log('JournalDetailScreen delete confirmed for entry:', entry.id);
-          onDelete(entry.id);
-        }}
-      ]
-    );
-  };
-
+}> = ({ entry, onBack }) => {
   return (
     <View style={styles.journalDetailContainer}>
       <View style={styles.journalDetailHeader}>
@@ -218,9 +202,6 @@ const JournalDetailScreen: React.FC<{
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.journalDetailTitle}>{entry.title}</Text>
-        <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-          <Text style={styles.deleteButtonText}>Delete</Text>
-        </TouchableOpacity>
       </View>
       <View style={styles.journalDetailContent}>
         <Text style={styles.journalDetailDate}>
@@ -239,9 +220,10 @@ const JournalSidebar: React.FC<{
   onSave: () => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onToggleFavorite: (id: string) => void;
   selectedId: string | null;
   onBack: () => void;
-}> = ({ entries, draft, setDraft, onSave, onSelect, onDelete, selectedId, onBack }) => {
+}> = ({ entries, draft, setDraft, onSave, onSelect, onDelete, onToggleFavorite, selectedId, onBack }) => {
   const handleDelete = (id: string) => {
     console.log('handleDelete called with id:', id);
     console.log('onDelete function:', onDelete);
@@ -308,15 +290,27 @@ const JournalSidebar: React.FC<{
         )}
         {entries.map(e => (
           <View key={e.id} style={styles.entryCard}>
-            <TouchableOpacity 
-              style={styles.entryContent}
-              onPress={() => onSelect(e.id)}
-            >
-              <Text style={styles.entryTitle}>{e.title}</Text>
-              <Text style={styles.entryDate}>
-                {formatStamp(e.updatedAt || e.createdAt)}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.entryHeader}>
+              <TouchableOpacity 
+                style={styles.entryContent}
+                onPress={() => onSelect(e.id)}
+              >
+                <Text style={styles.entryTitle}>{e.title}</Text>
+                {e.preview && (
+                  <Text style={styles.entryPreview}>{e.preview}...</Text>
+                )}
+                <Text style={styles.entryDate}>
+                  {formatStamp(e.updatedAt || e.createdAt)}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => onToggleFavorite(e.id)}
+                style={styles.favoriteButton}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.favoriteIcon}>{e.favorite === true ? '★' : '☆'}</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.entryActions}>
               <TouchableOpacity 
                 onPress={() => {
@@ -496,6 +490,47 @@ const NRVEApp: React.FC = () => {
     }
   }
 
+  async function toggleFavorite(id: string) {
+    try {
+      const entry = entries.find(e => e.id === id);
+      if (!entry) return;
+      
+      const newFavoriteStatus = !(entry.favorite === true);
+      console.log('Toggling favorite for entry:', id, 'from', entry.favorite, 'to', newFavoriteStatus);
+      
+      // Update UI optimistically
+      setEntries(prev => prev.map(e => 
+        e.id === id ? { ...e, favorite: newFavoriteStatus } : e
+      ));
+      
+      // Update selected entry if it's the same one
+      if (selectedEntry?.id === id) {
+        setSelectedEntry(prev => prev ? { ...prev, favorite: newFavoriteStatus } : null);
+      }
+      
+      // Make API call
+      const response = await api<JournalEntry>(`/api/journal/${id}/favorite`, { 
+        method: "PATCH", 
+        body: JSON.stringify({ favorite: newFavoriteStatus }) 
+      });
+      console.log('Favorite toggle response:', response);
+      
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+      
+      // Revert optimistic update on error
+      setEntries(prev => prev.map(e => 
+        e.id === id ? { ...e, favorite: !e.favorite } : e
+      ));
+      
+      if (selectedEntry?.id === id) {
+        setSelectedEntry(prev => prev ? { ...prev, favorite: !prev.favorite } : null);
+      }
+      
+      Alert.alert("Error", "Failed to update favorite status. Please try again.");
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f5ff" />
@@ -515,6 +550,7 @@ const NRVEApp: React.FC = () => {
               onSave={saveDraft}
               onSelect={selectEntry}
               onDelete={deleteEntry}
+              onToggleFavorite={toggleFavorite}
               selectedId={selectedId}
               onBack={() => setActiveTab('chat')}
             />
@@ -526,7 +562,6 @@ const NRVEApp: React.FC = () => {
                 setShowJournalDetail(false);
                 setSelectedEntry(null);
               }}
-              onDelete={deleteEntry}
             />
           )}
         </View>
@@ -856,13 +891,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     marginBottom: 8,
   },
-  entryContent: {
+  entryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 8,
+  },
+  entryContent: {
+    flex: 1,
   },
   entryTitle: {
     fontSize: 14,
     fontWeight: '500',
     color: '#090b06',
+    marginBottom: 2,
+  },
+  entryPreview: {
+    fontSize: 10,
+    color: 'rgba(9, 11, 6, 0.5)',
     marginBottom: 2,
   },
   entryDate: {
@@ -872,6 +918,17 @@ const styles = StyleSheet.create({
   },
   entryActions: {
     alignItems: 'flex-end',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  favoriteButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  favoriteIcon: {
+    fontSize: 16,
+    color: '#fbbf24',
   },
   deleteButton: {
     borderWidth: 1,

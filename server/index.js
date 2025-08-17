@@ -55,7 +55,14 @@ app.post('/api/journal', (req, res) => {
   const { text } = req.body || {}
   if (!text || !String(text).trim()) return res.status(400).json({ error: 'text required' })
   const time = new Date().toISOString()
-  const entry = { id: uuid(), text, title: String(text).split(/\n|\r/)[0].slice(0,60) || 'Untitled entry', createdAt: time, updatedAt: time }
+  const lines = String(text).split(/\n|\r/)
+  const title = lines[0].slice(0,60) || 'Untitled entry'
+  
+  // Extract preview: get the first 10 characters of the content after the title
+  const contentAfterTitle = String(text).replace(lines[0], '').trim()
+  const preview = contentAfterTitle.slice(0, 10)
+  
+  const entry = { id: uuid(), text, title, preview, createdAt: time, updatedAt: time, favorite: false }
   const db = readDB()
   db.entries.unshift(entry)
   writeDB(db)
@@ -69,6 +76,19 @@ app.delete('/api/journal/:id', (req, res) => {
   db.entries = db.entries.filter(e => e.id !== id)
   writeDB(db)
   res.json({ ok: true, removed: before - db.entries.length })
+})
+
+app.patch('/api/journal/:id/favorite', (req, res) => {
+  const { id } = req.params
+  const { favorite } = req.body || {}
+  const db = readDB()
+  const entry = db.entries.find(e => e.id === id)
+  if (!entry) return res.status(404).json({ error: 'entry not found' })
+  
+  entry.favorite = Boolean(favorite)
+  entry.updatedAt = new Date().toISOString()
+  writeDB(db)
+  res.json(entry)
 })
 
 // --- Mood Assessment API ---
