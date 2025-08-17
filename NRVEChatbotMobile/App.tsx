@@ -298,7 +298,8 @@ const JournalDetailScreen: React.FC<{
   entry: JournalEntry;
   onBack: () => void;
   onToggleFavorite: (id: string) => void;
-}> = ({ entry, onBack, onToggleFavorite }) => {
+  onDelete: (id: string) => void;
+}> = ({ entry, onBack, onToggleFavorite, onDelete }) => {
   return (
     <View style={styles.journalDetailContainer}>
       <View style={styles.journalDetailHeader}>
@@ -306,13 +307,22 @@ const JournalDetailScreen: React.FC<{
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.journalDetailTitle}>{entry.title}</Text>
-        <TouchableOpacity 
-          onPress={() => onToggleFavorite(entry.id)}
-          style={styles.detailFavoriteButton}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.detailFavoriteIcon}>{entry.favorite === true ? '★' : '☆'}</Text>
-        </TouchableOpacity>
+        <View style={styles.detailActions}>
+          <TouchableOpacity 
+            onPress={() => onToggleFavorite(entry.id)}
+            style={styles.detailFavoriteButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.detailFavoriteIcon}>{entry.favorite === true ? '★' : '☆'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => onDelete(entry.id)}
+            style={styles.detailDeleteButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.detailDeleteIcon}>🗑️</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={styles.journalDetailContent}>
         <Text style={styles.journalDetailDate}>
@@ -704,6 +714,7 @@ const NRVEApp: React.FC = () => {
                   setSelectedEntry(null);
                 }}
                 onToggleFavorite={toggleFavorite}
+                onDelete={deleteEntry}
               />
             )}
           </View>
@@ -1128,6 +1139,19 @@ const styles = StyleSheet.create({
   detailFavoriteIcon: {
     fontSize: 20,
     color: '#fbbf24',
+  },
+  detailActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  detailDeleteButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  detailDeleteIcon: {
+    fontSize: 18,
   },
   journalDetailContent: {
     flex: 1,
