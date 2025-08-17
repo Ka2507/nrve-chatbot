@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -129,6 +129,7 @@ const ChatMain: React.FC<{
   sending: boolean; 
 }> = ({ messages, onSend, sending }) => {
   const [text, setText] = useState("");
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const handleSend = () => {
     if (text.trim()) {
@@ -137,9 +138,23 @@ const ChatMain: React.FC<{
     }
   };
 
+  // Auto-scroll to bottom when new messages are added
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
+
   return (
     <View style={styles.chatContainer}>
-      <ScrollView style={styles.messagesContainer}>
+      <ScrollView 
+        ref={scrollViewRef}
+        style={styles.messagesContainer}
+        showsVerticalScrollIndicator={true}
+        contentContainerStyle={styles.messagesContentContainer}
+      >
         {messages.map(m => (
           <View key={m.id} style={[
             styles.messageContainer,
@@ -1075,6 +1090,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     paddingBottom: 100,
+  },
+  messagesContentContainer: {
+    flexGrow: 1,
   },
   messageContainer: {
     marginBottom: 16,
