@@ -200,6 +200,7 @@ const SwipeableJournalEntry: React.FC<{
 }> = ({ entry, onSelect, onDelete, onToggleFavorite }) => {
   const [translateX, setTranslateX] = useState(0);
   const [showDeleteAction, setShowDeleteAction] = useState(false);
+  const [showOpenAction, setShowOpenAction] = useState(false);
 
   const onGestureEvent = (event: any) => {
     const { translationX } = event.nativeEvent;
@@ -208,8 +209,17 @@ const SwipeableJournalEntry: React.FC<{
     // Show delete action when swiping right (positive translationX)
     if (translationX > 50) {
       setShowDeleteAction(true);
-    } else {
+      setShowOpenAction(false);
+    } 
+    // Show open action when swiping left (negative translationX)
+    else if (translationX < -50) {
+      setShowOpenAction(true);
       setShowDeleteAction(false);
+    } 
+    // Hide both actions when not swiping enough
+    else {
+      setShowDeleteAction(false);
+      setShowOpenAction(false);
     }
   };
 
@@ -226,21 +236,15 @@ const SwipeableJournalEntry: React.FC<{
         onSelect(entry.id);
       }
       
-      // Reset position
+      // Reset position and hide actions
       setTranslateX(0);
       setShowDeleteAction(false);
+      setShowOpenAction(false);
     }
   };
 
   return (
     <View style={styles.swipeableContainer}>
-      {/* Delete action background */}
-      {showDeleteAction && (
-        <View style={styles.deleteActionBackground}>
-          <Text style={styles.deleteActionText}>Delete</Text>
-        </View>
-      )}
-      
       <PanGestureHandler
         onGestureEvent={onGestureEvent}
         onHandlerStateChange={onHandlerStateChange}
@@ -272,6 +276,20 @@ const SwipeableJournalEntry: React.FC<{
           </View>
         </View>
       </PanGestureHandler>
+      
+      {/* Delete action background (right side) */}
+      {showDeleteAction && (
+        <View style={styles.deleteActionBackground}>
+          <Text style={styles.deleteActionText}>Delete</Text>
+        </View>
+      )}
+      
+      {/* Open action background (left side) */}
+      {showOpenAction && (
+        <View style={styles.openActionBackground}>
+          <Text style={styles.openActionText}>Open</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -279,7 +297,8 @@ const SwipeableJournalEntry: React.FC<{
 const JournalDetailScreen: React.FC<{
   entry: JournalEntry;
   onBack: () => void;
-}> = ({ entry, onBack }) => {
+  onToggleFavorite: (id: string) => void;
+}> = ({ entry, onBack, onToggleFavorite }) => {
   return (
     <View style={styles.journalDetailContainer}>
       <View style={styles.journalDetailHeader}>
@@ -287,6 +306,13 @@ const JournalDetailScreen: React.FC<{
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.journalDetailTitle}>{entry.title}</Text>
+        <TouchableOpacity 
+          onPress={() => onToggleFavorite(entry.id)}
+          style={styles.detailFavoriteButton}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.detailFavoriteIcon}>{entry.favorite === true ? '★' : '☆'}</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.journalDetailContent}>
         <Text style={styles.journalDetailDate}>
@@ -677,6 +703,7 @@ const NRVEApp: React.FC = () => {
                   setShowJournalDetail(false);
                   setSelectedEntry(null);
                 }}
+                onToggleFavorite={toggleFavorite}
               />
             )}
           </View>
@@ -1093,6 +1120,15 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
+  detailFavoriteButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  detailFavoriteIcon: {
+    fontSize: 20,
+    color: '#fbbf24',
+  },
   journalDetailContent: {
     flex: 1,
     padding: 16,
@@ -1121,8 +1157,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: 80,
     borderRadius: 12,
+    zIndex: 1,
   },
   deleteActionText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  openActionBackground: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#884bff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderRadius: 12,
+    zIndex: 1,
+  },
+  openActionText: {
     color: 'white',
     fontSize: 14,
     fontWeight: '500',
