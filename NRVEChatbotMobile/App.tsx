@@ -409,15 +409,23 @@ const JournalSidebar: React.FC<{
         {entries.length === 0 && (
           <Text style={styles.noEntries}>No entries yet.</Text>
         )}
-        {entries.map(e => (
-          <SwipeableJournalEntry
-            key={e.id}
-            entry={e}
-            onSelect={onSelect}
-            onDelete={onDelete}
-            onToggleFavorite={onToggleFavorite}
-          />
-        ))}
+        {entries
+          .sort((a, b) => {
+            // Sort by favorite status first (favorited entries go to top)
+            if (a.favorite === true && b.favorite !== true) return -1;
+            if (a.favorite !== true && b.favorite === true) return 1;
+            // Then sort by date (newest first)
+            return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
+          })
+          .map(e => (
+            <SwipeableJournalEntry
+              key={e.id}
+              entry={e}
+              onSelect={onSelect}
+              onDelete={onDelete}
+              onToggleFavorite={onToggleFavorite}
+            />
+          ))}
       </ScrollView>
     </View>
   );
