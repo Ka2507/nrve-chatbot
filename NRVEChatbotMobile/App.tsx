@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import { API_BASE_URL } from './config';
 
 type ChatMessage = { id: string; role: "user" | "bot"; text: string; time: string };
@@ -191,6 +192,90 @@ const ChatMain: React.FC<{
   );
 };
 
+const SwipeableJournalEntry: React.FC<{
+  entry: JournalEntry;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  onToggleFavorite: (id: string) => void;
+}> = ({ entry, onSelect, onDelete, onToggleFavorite }) => {
+  const [translateX, setTranslateX] = useState(0);
+  const [showDeleteAction, setShowDeleteAction] = useState(false);
+
+  const onGestureEvent = (event: any) => {
+    const { translationX } = event.nativeEvent;
+    setTranslateX(translationX);
+    
+    // Show delete action when swiping right (positive translationX)
+    if (translationX > 50) {
+      setShowDeleteAction(true);
+    } else {
+      setShowDeleteAction(false);
+    }
+  };
+
+  const onHandlerStateChange = (event: any) => {
+    const { state, translationX } = event.nativeEvent;
+    
+    if (state === State.END) {
+      // Swipe right to delete (translationX > 100)
+      if (translationX > 100) {
+        onDelete(entry.id);
+      }
+      // Swipe left to open (translationX < -100)
+      else if (translationX < -100) {
+        onSelect(entry.id);
+      }
+      
+      // Reset position
+      setTranslateX(0);
+      setShowDeleteAction(false);
+    }
+  };
+
+  return (
+    <View style={styles.swipeableContainer}>
+      {/* Delete action background */}
+      {showDeleteAction && (
+        <View style={styles.deleteActionBackground}>
+          <Text style={styles.deleteActionText}>Delete</Text>
+        </View>
+      )}
+      
+      <PanGestureHandler
+        onGestureEvent={onGestureEvent}
+        onHandlerStateChange={onHandlerStateChange}
+      >
+        <View style={[
+          styles.entryCard,
+          { transform: [{ translateX }] }
+        ]}>
+          <View style={styles.entryHeader}>
+            <TouchableOpacity 
+              style={styles.entryContent}
+              onPress={() => onSelect(entry.id)}
+            >
+              <Text style={styles.entryTitle}>{entry.title}</Text>
+              {entry.preview && (
+                <Text style={styles.entryPreview}>{entry.preview}...</Text>
+              )}
+              <Text style={styles.entryDate}>
+                {formatStamp(entry.updatedAt || entry.createdAt)}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => onToggleFavorite(entry.id)}
+              style={styles.favoriteButton}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.favoriteIcon}>{entry.favorite === true ? '★' : '☆'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </PanGestureHandler>
+    </View>
+  );
+};
+
 const JournalDetailScreen: React.FC<{
   entry: JournalEntry;
   onBack: () => void;
@@ -289,41 +374,13 @@ const JournalSidebar: React.FC<{
           <Text style={styles.noEntries}>No entries yet.</Text>
         )}
         {entries.map(e => (
-          <View key={e.id} style={styles.entryCard}>
-            <View style={styles.entryHeader}>
-              <TouchableOpacity 
-                style={styles.entryContent}
-                onPress={() => onSelect(e.id)}
-              >
-                <Text style={styles.entryTitle}>{e.title}</Text>
-                {e.preview && (
-                  <Text style={styles.entryPreview}>{e.preview}...</Text>
-                )}
-                <Text style={styles.entryDate}>
-                  {formatStamp(e.updatedAt || e.createdAt)}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={() => onToggleFavorite(e.id)}
-                style={styles.favoriteButton}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.favoriteIcon}>{e.favorite === true ? '★' : '☆'}</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.entryActions}>
-              <TouchableOpacity 
-                onPress={() => {
-                  console.log('Delete button pressed for entry:', e.id);
-                  handleDelete(e.id);
-                }}
-                style={styles.deleteButton}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <SwipeableJournalEntry
+            key={e.id}
+            entry={e}
+            onSelect={onSelect}
+            onDelete={onDelete}
+            onToggleFavorite={onToggleFavorite}
+          />
         ))}
       </ScrollView>
     </View>
@@ -344,6 +401,11 @@ const NRVEApp: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showJournalDetail, setShowJournalDetail] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  
+  // Undo functionality state
+  const [deletedEntry, setDeletedEntry] = useState<JournalEntry | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const [undoTimeout, setUndoTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Check if mood assessment is needed on mount
   useEffect(() => {
@@ -443,6 +505,20 @@ const NRVEApp: React.FC = () => {
       // Store the current entries for potential rollback
       currentEntries = [...entries];
       
+      // Find the entry to be deleted for undo functionality
+      const entryToDelete = entries.find(e => e.id === id);
+      if (entryToDelete) {
+        setDeletedEntry(entryToDelete);
+        setShowUndo(true);
+        
+        // Set 5-second timeout for undo
+        const timeout = setTimeout(() => {
+          setShowUndo(false);
+          setDeletedEntry(null);
+        }, 5000);
+        setUndoTimeout(timeout);
+      }
+      
       // First update the UI optimistically
       setEntries(prev => {
         const filtered = prev.filter(e => e.id !== id);
@@ -475,6 +551,14 @@ const NRVEApp: React.FC = () => {
     } catch (error) {
       console.error('Failed to delete journal entry:', error);
       
+      // Clear undo state on error
+      setShowUndo(false);
+      setDeletedEntry(null);
+      if (undoTimeout) {
+        clearTimeout(undoTimeout);
+        setUndoTimeout(null);
+      }
+      
       // Revert the optimistic update on error by reloading from server
       try {
         console.log('Reloading entries from server due to delete error');
@@ -487,6 +571,36 @@ const NRVEApp: React.FC = () => {
       }
       
       Alert.alert("Error", "Failed to delete journal entry. Please try again.");
+    }
+  }
+
+  async function undoDelete() {
+    if (!deletedEntry) return;
+    
+    try {
+      console.log('Undoing delete for entry:', deletedEntry.id);
+      
+      // Clear undo state
+      setShowUndo(false);
+      setDeletedEntry(null);
+      if (undoTimeout) {
+        clearTimeout(undoTimeout);
+        setUndoTimeout(null);
+      }
+      
+      // Restore the entry to the list
+      setEntries(prev => [deletedEntry, ...prev]);
+      
+      // Make API call to restore the entry
+      const response = await api<JournalEntry>("/api/journal", { 
+        method: "POST", 
+        body: JSON.stringify({ text: deletedEntry.text }) 
+      });
+      console.log('Entry restored successfully:', response);
+      
+    } catch (error) {
+      console.error('Failed to undo delete:', error);
+      Alert.alert("Error", "Failed to restore journal entry. Please try again.");
     }
   }
 
@@ -532,41 +646,58 @@ const NRVEApp: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f5ff" />
-      <Header onJournalPress={() => setActiveTab('journal')} />
-      {showMoodAssessment ? (
-        <MoodAssessment onComplete={handleMoodAssessment} />
-      ) : (
-        <View style={styles.mainContainer}>
-          {activeTab === 'chat' && (
-            <ChatMain messages={messages} onSend={handleSend} sending={sending} />
-          )}
-          {activeTab === 'journal' && !showJournalDetail && (
-            <JournalSidebar
-              entries={entries}
-              draft={draft}
-              setDraft={setDraft}
-              onSave={saveDraft}
-              onSelect={selectEntry}
-              onDelete={deleteEntry}
-              onToggleFavorite={toggleFavorite}
-              selectedId={selectedId}
-              onBack={() => setActiveTab('chat')}
-            />
-          )}
-          {activeTab === 'journal' && showJournalDetail && selectedEntry && (
-            <JournalDetailScreen
-              entry={selectedEntry}
-              onBack={() => {
-                setShowJournalDetail(false);
-                setSelectedEntry(null);
-              }}
-            />
-          )}
-        </View>
-      )}
-    </SafeAreaView>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#f8f5ff" />
+        <Header onJournalPress={() => setActiveTab('journal')} />
+        {showMoodAssessment ? (
+          <MoodAssessment onComplete={handleMoodAssessment} />
+        ) : (
+          <View style={styles.mainContainer}>
+            {activeTab === 'chat' && (
+              <ChatMain messages={messages} onSend={handleSend} sending={sending} />
+            )}
+            {activeTab === 'journal' && !showJournalDetail && (
+              <JournalSidebar
+                entries={entries}
+                draft={draft}
+                setDraft={setDraft}
+                onSave={saveDraft}
+                onSelect={selectEntry}
+                onDelete={deleteEntry}
+                onToggleFavorite={toggleFavorite}
+                selectedId={selectedId}
+                onBack={() => setActiveTab('chat')}
+              />
+            )}
+            {activeTab === 'journal' && showJournalDetail && selectedEntry && (
+              <JournalDetailScreen
+                entry={selectedEntry}
+                onBack={() => {
+                  setShowJournalDetail(false);
+                  setSelectedEntry(null);
+                }}
+              />
+            )}
+          </View>
+        )}
+        
+        {/* Undo button */}
+        {showUndo && (
+          <View style={styles.undoContainer}>
+            <Text style={styles.undoText}>
+              Entry deleted • Tap to undo
+            </Text>
+            <TouchableOpacity
+              onPress={undoDelete}
+              style={styles.undoButton}
+            >
+              <Text style={styles.undoButtonText}>Undo</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 };
 
@@ -975,6 +1106,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#090b06',
     lineHeight: 24,
+  },
+  swipeableContainer: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  deleteActionBackground: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderRadius: 12,
+  },
+  deleteActionText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  undoContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: '#884bff',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  undoText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  undoButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  undoButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
