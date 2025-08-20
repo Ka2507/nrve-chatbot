@@ -376,6 +376,60 @@ const PromptsScreen: React.FC<{
       title: "Where are you from?",
       description: "Find famous musicians from your hometown",
       emoji: '🏠'
+    },
+    {
+      id: 'ethnicity',
+      title: "What is your ethnicity?",
+      description: "Find artists of the same ethnicity",
+      emoji: '🌍'
+    },
+    {
+      id: 'car',
+      title: "What is your favorite car?",
+      description: "Find artists who drive the same car",
+      emoji: '🚗'
+    },
+    {
+      id: 'gaming',
+      title: "Playstation, Xbox, or PC gaming?",
+      description: "Find artists who play on the same console",
+      emoji: '🎮'
+    },
+    {
+      id: 'videogame',
+      title: "What's your favorite video game?",
+      description: "Find artists who play the same game",
+      emoji: '🕹️'
+    },
+    {
+      id: 'fashion',
+      title: "What is your style of fashion?",
+      description: "Find artists who follow the same fashion",
+      emoji: '👗'
+    },
+    {
+      id: 'rolemodel',
+      title: "Who is your biggest role model?",
+      description: "Find artists related to your role model",
+      emoji: '⭐'
+    },
+    {
+      id: 'food',
+      title: "What's your favorite food?",
+      description: "Find artists who like the same food",
+      emoji: '🍕'
+    },
+    {
+      id: 'spendtime',
+      title: "Where do you spend the most time?",
+      description: "Find artists who spend time at the same place",
+      emoji: '⏰'
+    },
+    {
+      id: 'era',
+      title: "What's your favorite era?",
+      description: "Find artists from that era",
+      emoji: '📅'
     }
   ];
 
@@ -387,7 +441,7 @@ const PromptsScreen: React.FC<{
         </TouchableOpacity>
         <Text style={styles.promptsTitle}>Creative Prompts</Text>
       </View>
-      <View style={styles.promptsContent}>
+      <ScrollView style={styles.promptsContent} showsVerticalScrollIndicator={true}>
         <Text style={styles.promptsSubtitle}>Choose a prompt to explore music and culture</Text>
         {prompts.map(prompt => (
           <TouchableOpacity
@@ -403,7 +457,7 @@ const PromptsScreen: React.FC<{
             </View>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -420,6 +474,15 @@ const PromptInputScreen: React.FC<{
       case 'artist': return "Who's your favorite music artist?";
       case 'place': return "What's your favorite place to visit?";
       case 'location': return "Where are you from?";
+      case 'ethnicity': return "What is your ethnicity?";
+      case 'car': return "What is your favorite car?";
+      case 'gaming': return "Playstation, Xbox, or PC gaming?";
+      case 'videogame': return "What's your favorite video game?";
+      case 'fashion': return "What is your style of fashion?";
+      case 'rolemodel': return "Who is your biggest role model?";
+      case 'food': return "What's your favorite food?";
+      case 'spendtime': return "Where do you spend the most time?";
+      case 'era': return "What's your favorite era?";
       default: return "Enter your answer";
     }
   };
@@ -429,6 +492,15 @@ const PromptInputScreen: React.FC<{
       case 'artist': return "e.g., Drake, Taylor Swift, Skrillex...";
       case 'place': return "e.g., Los Angeles, Nashville, London...";
       case 'location': return "e.g., Toronto, California, Manchester...";
+      case 'ethnicity': return "e.g., African American, Asian, Hispanic, Caucasian...";
+      case 'car': return "e.g., Tesla, BMW, Ferrari, Toyota...";
+      case 'gaming': return "e.g., PlayStation, Xbox, PC...";
+      case 'videogame': return "e.g., Fortnite, Call of Duty, Minecraft...";
+      case 'fashion': return "e.g., Streetwear, Vintage, Luxury, Minimalist...";
+      case 'rolemodel': return "e.g., Elon Musk, Oprah, Michael Jordan...";
+      case 'food': return "e.g., Pizza, Sushi, Tacos, Burgers...";
+      case 'spendtime': return "e.g., Gym, Studio, Office, Home...";
+      case 'era': return "e.g., 80s, 90s, 2000s, 2010s...";
       default: return "Enter your answer";
     }
   };
@@ -1485,6 +1557,7 @@ const styles = StyleSheet.create({
   promptsContent: {
     flex: 1,
     padding: 16,
+    paddingBottom: 32,
   },
   promptsSubtitle: {
     fontSize: 14,
