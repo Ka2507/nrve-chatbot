@@ -204,6 +204,33 @@ app.post('/api/prompt', async (req, res) => {
       case 'location':
         prompt = `List 3-5 famous music artists who are from ${input}. Include brief context about their connection to this location and their musical contributions. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
         break
+      case 'ethnicity':
+        prompt = `List 3-5 famous music artists who are of ${input} ethnicity. Include brief context about their background and musical contributions. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and respectful.`
+        break
+      case 'car':
+        prompt = `List 3-5 famous music artists who are known to drive or own ${input} cars. Include brief context about their car preferences and any public mentions of this vehicle. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      case 'gaming':
+        prompt = `List 3-5 famous music artists who are known to play games on ${input}. Include brief context about their gaming preferences and any public mentions of this gaming platform. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      case 'videogame':
+        prompt = `List 3-5 famous music artists who are known to play ${input}. Include brief context about their gaming preferences and any public mentions of this video game. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      case 'fashion':
+        prompt = `List 3-5 famous music artists who are known for ${input} fashion style. Include brief context about their fashion choices and how they express this style. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      case 'rolemodel':
+        prompt = `List 3-5 famous music artists who are related to or influenced by ${input} as a role model. Include brief context about their connection or how they've been inspired by this person. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      case 'food':
+        prompt = `List 3-5 famous music artists who are known to enjoy ${input}. Include brief context about their food preferences and any public mentions of this food. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      case 'spendtime':
+        prompt = `List 3-5 famous music artists who are known to spend significant time at ${input}. Include brief context about their connection to this place and why they spend time there. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
+      case 'era':
+        prompt = `List 3-5 famous music artists who were prominent during the ${input} era. Include brief context about their musical contributions and impact during that time period. Focus only on music artists (singers, producers, DJs, bands, etc.). Keep it under 150 words and ensure the information is accurate and up-to-date.`
+        break
       default:
         return res.status(400).json({ error: 'invalid prompt type' })
     }
